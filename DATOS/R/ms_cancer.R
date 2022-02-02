@@ -222,7 +222,7 @@ cancer_zc = join(df_cancer,POB_ZC, "GEOCODIGO")
 colnames(cancer_zc) = c('geocodigo', 'pob_cancer', 'pob_tot')
 
 #Tasa de gente con cáncer cada 100.000 personas
-cancer_zc$tasa_cancer = cancer_zc$pob_cancer / cancer_zc$pob_tot * 100000
+cancer_zc$tasa_cancer = round(cancer_zc$pob_cancer / cancer_zc$pob_tot * 100000,3)
 
 ####OUTPUT####
 write.csv(cancer_zc, 'SALIDAS/cancer_zc.csv', row.names = FALSE)
