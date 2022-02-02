@@ -115,6 +115,12 @@ casen_comunas = dlply(casen_DF,.(comuna))
 
 ##Pequeña limpieza##
 censo_gs$COMUNA = factor(censo_gs$COMUNA) 
+
+#Se genera una tabla que contenga la población de cada zona censal
+POB_ZC = count(censo_gs,"GEOCODIGO")
+POB_ZC$GEOCODIGO = as.character(POB_ZC$GEOCODIGO)
+
+#Filtro para dejar únicamente mayores de 30 años
 censo_gs = censo_gs[!(censo_gs$EDAD<30),]
 
 ###Agregación de información###
@@ -206,4 +212,18 @@ sim_df$enfermedad = NULL
 
 #Se agregan los casos de cancer a nivel zona censal
 df_cancer = aggregate(cancer ~ GEOCODIGO, data= sim_df, FUN = function(a) {length(which(a==1))})
+
+####TABLA FINAL####
+
+#Se añade la columna de población a cada zona censal
+cancer_zc = join(df_cancer,POB_ZC, "GEOCODIGO")
+
+#Se cambia el nombre de columnas
+colnames(cancer_zc) = c('geocodigo', 'pob_cancer', 'pob_tot')
+
+#Tasa de gente con cáncer cada 100.000 personas
+cancer_zc$tasa_cancer = cancer_zc$pob_cancer / cancer_zc$pob_tot * 100000
+
+####OUTPUT####
+write.csv(cancer_zc, 'SALIDAS/cancer_zc.csv', row.names = FALSE)
 
