@@ -2,6 +2,7 @@
 library(readr)
 library(plyr)
 library(rakeR)
+library(data.table)
 
 ####INPUTS####
 casen_gs <- read_delim("DATOS/CSV/casen_gs.csv",";",
@@ -179,5 +180,30 @@ tabla_consolidada$GEOCODIGO=as.character(tabla_consolidada$GEOCODIGO)
 cons_censo_comunas=dlply(tabla_consolidada,.(COMUNA))
 
 
+####MICROSIMULACIÓN####
 
+#vector con columnas que se utilizarán para microsimular
+vars=c("edad","escolaridad","sexo")
+
+#el algoritmo le asigna un valor a la cantidad de hipertensos por zona censal 
+#en base a los datos utilizados de la encuesta CASEN. El resultado se almacena
+#en una lista de listas, en donde cada una de ellas pertence a una comuna.
+
+sim_list = list()
+
+for (i in 1:34){
+  pesos=weight(cons = cons_censo_comunas[[i]][,-14], inds = casen_comunas[[i]][,-2],vars=vars)
+  pesos_int=integerise(pesos, inds = casen_comunas[[i]][,-2])
+  names(pesos_int)[7]="GEOCODIGO"
+  sim_list[[i]]=pesos_int
+}
+
+#Se unen las listas 
+sim_df = rbindlist(sim_list)
+
+#Se elimina a columna de enfermedades
+sim_df$enfermedad = NULL 
+
+#Se agregan los casos de cancer a nivel zona censal
+df_cancer = aggregate(cancer ~ GEOCODIGO, data= sim_df, FUN = function(a) {length(which(a==1))})
 
