@@ -8,6 +8,8 @@ casen_gs <- read_delim("DATOS/CSV/casen_gs.csv",";",
                        locale = locale(encoding = "LATIN1"),
                        escape_double = FALSE, trim_ws = TRUE)
 
+censo_gs = read.csv2("DATOS/CSV/data_censo_gs_red.csv", sep=";")
+
 ####CASEN####
 
 ##Se genera df únicamente con las columnas de interés y se modifican los nombres
@@ -109,3 +111,73 @@ casen_DF = casen_DF[,c("ID","comuna","edad","escolaridad","sexo","enfermedad","c
 casen_comunas = dlply(casen_DF,.(comuna))
 
 ####CENSO####
+
+##Pequeña limpieza##
+censo_gs$COMUNA = factor(censo_gs$COMUNA) 
+censo_gs = censo_gs[!(censo_gs$EDAD<30),]
+
+###Agregación de información###
+
+##Edad##
+
+#Se generan dataframes con edad agregada por zona censal
+pos=3
+edad_30_40=aggregate(EDAD ~ GEOCODIGO+COMUNA,data = censo_gs,FUN=function (a) { length( which(a>=30&a<40)) })
+edad_40_50=aggregate(EDAD ~ GEOCODIGO+COMUNA,data = censo_gs,FUN=function (a) { length( which(a>=40&a<50)) })
+edad_50_60=aggregate(EDAD ~ GEOCODIGO+COMUNA,data = censo_gs,FUN=function (a) { length( which(a>=50&a<60)) })
+edad_60_70=aggregate(EDAD ~ GEOCODIGO+COMUNA,data = censo_gs,FUN=function (a) { length( which(a>=60&a<70)) })
+edad_70_80=aggregate(EDAD ~ GEOCODIGO+COMUNA,data = censo_gs,FUN=function (a) { length( which(a>=70&a<80)) })
+edad_mayor_80=aggregate(EDAD ~ GEOCODIGO+COMUNA, data = censo_gs, FUN = function (a) { length( which(a>=80)) })
+
+#se cambian los nombres de las columnas de edad de los distintos df's
+names(edad_30_40)[pos]="edad_30_40"
+names(edad_40_50)[pos]="edad_40_50"
+names(edad_50_60)[pos]="edad_50_60"
+names(edad_60_70)[pos]="edad_60_70"
+names(edad_70_80)[pos]="edad_70_80"
+names(edad_mayor_80)[pos]="edad_mayor_80"
+
+##Escolaridad##
+
+#Se generan dataframes con escolaridad agregada por zona censal
+esco_0=aggregate(ESCOLARIDAD ~ GEOCODIGO+COMUNA, data = censo_gs,FUN= function (a) { length( which(a==0)) })
+esco_1_8=aggregate(ESCOLARIDAD ~ GEOCODIGO+COMUNA, data = censo_gs,FUN = function (a) { length( which(a>0&a<=8)) })
+esco_8_12=aggregate(ESCOLARIDAD ~ GEOCODIGO+COMUNA, data = censo_gs,FUN = function (a) { length( which(a>=9&a<=12)) })
+esco_mayor_12=aggregate(ESCOLARIDAD ~ GEOCODIGO+COMUNA, data = censo_gs,FUN = function (a) { length( which(a>12)) })
+
+#se cambian los nombres de las columnas de escolaridad de los distintos df's
+names(esco_0)[pos]="esco_0"
+names(esco_1_8)[pos]="esco_1_8"
+names(esco_8_12)[pos]="esco_8_12"
+names(esco_mayor_12)[pos]="esco_mayor_12"
+
+##Sexo##
+
+#Se generan dataframes con sexo agregado por zona censal
+sexo_m=aggregate(SEXO ~ GEOCODIGO+COMUNA, data = censo_gs, FUN = function (a) { length( which(a==1)) })
+sexo_f=aggregate(SEXO ~ GEOCODIGO+COMUNA, data = censo_gs, FUN = function (a) { length( which(a==2)) })
+
+#se cambian los nombres de las columnas de sexo de los distintos df's
+names(sexo_m)[pos]="sexo_m"
+names(sexo_f)[pos]="sexo_f"
+
+###Tabla Consolidada###
+
+#Se consolidan todas las variables generadas anteriormente
+tabla_consolidada=Reduce(function(x,y) merge(x = x, y = y, by = "GEOCODIGO"), list(edad_30_40,edad_40_50,edad_50_60,edad_60_70,edad_70_80,edad_mayor_80,esco_0,esco_1_8,esco_8_12,esco_mayor_12,sexo_f,sexo_m)) 
+
+#Se seleccionan únicamente las columnas con las cuales se va a trabajar
+tabla_consolidada=tabla_consolidada[,c(1,3,5,7,9,11,13,15,17,19,21,23,25,20)] 
+
+#Se cambia el nombre de la columna de comuna
+names(tabla_consolidada)[14]="COMUNA"
+
+#Se transforma el campo de geocodigo a string
+tabla_consolidada$GEOCODIGO=as.character(tabla_consolidada$GEOCODIGO)
+
+#Se Separa el Data Frame en comunas
+cons_censo_comunas=dlply(tabla_consolidada,.(COMUNA))
+
+
+
+
